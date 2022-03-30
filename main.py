@@ -3,7 +3,7 @@ from skimage.transform import resize
 import numpy as np
 import re
 import matplotlib.pyplot as plt
-# import convolucional
+import convolucional
 
 
 dirname = os.path.join(os.getcwd(), "objetos")
@@ -37,7 +37,7 @@ for root, dirnames, filenames in os.walk(imgpath):
 dircount.append(cant)
 
 for i in range(len(images)):
-    res = resize(images[i], (1000, 800))
+    res = resize(images[i], (500, 200))
     imagesR.append(res)
 
 
@@ -50,4 +50,4 @@ dircount = dircount[1:]
 dircount[0] = dircount[0] + 1
 
 
-# historialConvolucional = convolucional.convolucionar(images,directories,dircount,prevRoot,cant)
+historialConvolucional = convolucional.convolucionar(images,directories,dircount)
