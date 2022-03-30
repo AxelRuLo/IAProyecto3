@@ -1,73 +1,36 @@
 import numpy as np
 import tensorflow as tf
-
 import os
-from sklearn.model_selection import train_test_split
-import keras
-from tensorflow.keras.utils import to_categorical
-from keras.models import Sequential,Input,Model
-from keras.layers import Dense, Dropout, Flatten
-from keras.layers import Conv2D, MaxPooling2D
-from keras.layers.advanced_activations import LeakyReLU
+from PIL import Image
+from tensorflow import keras
 
 
 
-def convolucionar(images,directories,dircount):
-    labels=[]
-    indice=0
-    for cantidad in dircount:
-        for i in range(cantidad):
-            labels.append(indice)
-        indice=indice+1
+def convolucionar(rutaPrueba:str):
+    
+    categorias = []
+    labels = [];
+    imagenes = [];
 
-    print("Cantidad etiquetas creadas: ",len(labels))
+    categorias = os.listdir("objetos/");
 
+    x= 0
+    for directorio in categorias:
+        for imagen in os.listdir("objetos/"+directorio):
+            img = Image.open("objetos/"+directorio+"/"+imagen).resize((100,100))
+            img = np.asarray(img)
+            imagenes.append(img)
+            labels.append(x)
+        x+=1
+    imagenes = np.array(imagenes,dtype=np.uint8);
 
-    deportes=[]
-    indice=0
-    for directorio in directories:
-        name = directorio.split(os.sep)
-        print(indice , name[len(name)-1])
-        deportes.append(name[len(name)-1])
-        indice=indice+1
+    labels = np.asarray(labels)
 
     print("\n")
-    print(f"deportes {deportes}")
 
-    y = np.array(labels)
-    X = np.array(images,dtype=np.uint32) 
-
+    print(len(labels))
+    print(imagenes[0].shape)
     
-    classes = np.unique(y)
-    nClasses = len(classes)
-    print('numero de clases : ', nClasses)
-    print('clases: ', classes)
-
-    print(X)
-
-
-    
-    train_X = X.astype('float32')
-    train_Y = y
-
-
-    train_X = train_X / 255.
-    
-    
-    
-    train_Y_one_hot = to_categorical(train_Y)
-
-    print("\n")
-    print(f"conversion x a categorical: {train_Y_one_hot.shape}")
-
-    
-    
-    print('original y:', train_Y[0])
-    print('conversion y:', train_Y_one_hot[0])
-    
-
-    
-    print(train_X.shape,train_Y.shape)
 
 
 
@@ -75,36 +38,70 @@ def convolucionar(images,directories,dircount):
     epochs = 10
     batch_size = 64
     
-    # print("\n")
-    # print(f"valores finales")
-    # print(f"{train_X.shape}")
-    # print(f"{train_label.shape}")
-    # print(f"{valid_X.shape}")
-    # print(f"{valid_label.shape}")
 
-    sport_model = Sequential()
-    sport_model.add(Conv2D(64, kernel_size=(7, 7),activation='linear',padding='same',input_shape=(500,200,3)))
-    sport_model.add(LeakyReLU(alpha=0.1))
-    sport_model.add(MaxPooling2D((2, 2),padding='same'))
-    sport_model.add(Dropout(0.5))
-    sport_model.add(Flatten())
-    sport_model.add(Dense(32, activation='linear'))
-    sport_model.add(LeakyReLU(alpha=0.1))
-    sport_model.add(Dropout(0.5)) 
-    sport_model.add(Dense(nClasses, activation='softmax'))
-    
-    sport_model.summary()
-    
-    sport_model.compile(loss=keras.losses.categorical_crossentropy, optimizer=tf.keras.optimizers.Adagrad(lr=INIT_LR, epsilon=None, decay=INIT_LR / 100),metrics=['accuracy'])
-    
-    sport_train_dropout = sport_model.fit(train_X, train_Y, batch_size=batch_size,epochs=epochs,verbose=1)
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.Conv2D(32, kernel_size=(3, 3),activation='relu',padding='same',input_shape=(100,100,3)),
+        tf.keras.layers.LeakyReLU(alpha=0.1),
+        tf.keras.layers.MaxPooling2D((2, 2),padding='same'),
+        tf.keras.layers.Dropout(0.5),
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(2,activation = 'softmax'),
+        
 
-    # test_eval = sport_model.evaluate(test_X, test_Y_one_hot, verbose=1)
-    
-    
-    # print('Test loss:', test_eval[0])
-    # print('Test accuracy:', test_eval[1])
-    
-    # return sport_train_dropout.history["loss"]
+        
+        
+    ])
 
+    model.compile(optimizer=tf.keras.optimizers.Adam(),loss='sparse_categorical_crossentropy',metrics=['accuracy'])
+
+    history= model.fit(imagenes,labels,epochs=40,verbose=True)
+    model.save('modelKeras/entrenado.h5')
+    test_eval = model.evaluate(imagenes, labels, verbose=1)
+    
+    
+    print('Test loss:', test_eval[0])
+    print('Test accuracy:', test_eval[1])
+
+    img = Image.open(rutaPrueba).resize((100,100))
+    
+    img = np.asarray(img)
+    img = np.array([img])
+    predict = model.predict(img)
+    return categorias[np.argmax(predict[0])]
+ 
+ 
+def convolucionarGuardado(rutaPrueba:str):
+    
+    categorias = []
+    labels = [];
+    imagenes = [];
+
+    categorias = os.listdir("objetos/");
+
+    x= 0
+    for directorio in categorias:
+        for imagen in os.listdir("objetos/"+directorio):
+            img = Image.open("objetos/"+directorio+"/"+imagen).resize((100,100))
+            img = np.asarray(img)
+            imagenes.append(img)
+            labels.append(x)
+        x+=1
+    imagenes = np.array(imagenes,dtype=np.uint8);
+
+    labels = np.asarray(labels)
+    
+
+    model = keras.models.load_model('modelKeras/entrenado.h5')
+    test_eval = model.evaluate(imagenes, labels, verbose=1)
+    
+    
+    print('Test loss:', test_eval[0])
+    print('Test accuracy:', test_eval[1])
+
+    img = Image.open(rutaPrueba).resize((100,100))
+    
+    img = np.asarray(img)
+    img = np.array([img])
+    predict = model.predict(img)
+    return categorias[np.argmax(predict[0])]
 
